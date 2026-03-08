@@ -1,12 +1,12 @@
 import OpenAI from 'openai';
 
 export const MODEL_TIERS = {
-  reasoning:    'anthropic/claude-sonnet-4',
-  conversation: 'anthropic/claude-haiku',
-  summary:      'anthropic/claude-haiku',
-  evaluation:   'anthropic/claude-haiku',
-  extraction:   'anthropic/claude-haiku',
-  toolSelect:   'anthropic/claude-haiku',
+  reasoning:    'anthropic/claude-3.5-sonnet',
+  conversation: 'anthropic/claude-3.5-haiku',
+  summary:      'anthropic/claude-3.5-haiku',
+  evaluation:   'anthropic/claude-3.5-haiku',
+  extraction:   'anthropic/claude-3.5-haiku',
+  toolSelect:   'anthropic/claude-3.5-haiku',
 } as const;
 
 export type ModelTier = keyof typeof MODEL_TIERS;
