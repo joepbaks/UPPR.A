@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { chat, buildContext, parseToolCalls, executeToolCalls } from '@uppr/agent-core';
+import { chat, buildContext, parseToolCalls, executeToolCalls, MODEL_TIERS } from '@uppr/agent-core';
 import type { AgentInfo, StoredMessage, ChatMessage } from '@uppr/agent-core';
 
 const SUMMARY_THRESHOLD = 12;
@@ -74,11 +74,16 @@ export function createChatService(prisma: PrismaClient) {
       });
 
       const activePrompt = agent.prompts[0];
+      const resolvedModel = agent.modelOverride ?? MODEL_TIERS.conversation;
       const agentInfo: AgentInfo = {
+        id: agent.id,
+        name: agent.name,
         role: agent.role,
         type: agent.type,
         userId: agent.userId,
         customPrompt: activePrompt?.content,
+        activeModel: resolvedModel,
+        modelOverride: agent.modelOverride ?? undefined,
       };
       const storedMessages: StoredMessage[] = recentMessages.map((m) => ({
         role: m.role as StoredMessage['role'],
