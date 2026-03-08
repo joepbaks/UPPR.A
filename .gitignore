@@ -1,0 +1,27 @@
+node_modules/
+dist/
+.env
+*.db
+*.sqlite
+
+# Prisma
+packages/backend/prisma/migrations/
+
+# Turbo
+.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volumes
+pgdata/
+
+# Logs
+*.log

@@ -1,0 +1,13 @@
+{
+  "name": "@uppr/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Frontend build — Phase 8'",
+    "dev": "echo 'Frontend dev — Phase 8'",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

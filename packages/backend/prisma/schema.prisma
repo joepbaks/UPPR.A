@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  agents      Agent[]
+  credentials Credential[]
+  userTools   UserTool[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Agent {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  name             String
+  role             String
+  type             AgentType
+  parentAgentId    String?
+  parentAgent      Agent?          @relation("AgentHierarchy", fields: [parentAgentId], references: [id])
+  subAgents        Agent[]         @relation("AgentHierarchy")
+  modelOverride    String?
+  prompts          AgentPrompt[]
+  conversations    Conversation[]
+  sentMessages     AgentMessage[]  @relation("SentMessages")
+  receivedMessages AgentMessage[]  @relation("ReceivedMessages")
+  scheduledTasks   ScheduledTask[]
+  activityLogs     ActivityLog[]
+  sqliteDbPath     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+enum AgentType {
+  MAIN
+  SUB
+}
+
+model AgentPrompt {
+  id        String   @id @default(cuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id])
+  version   Int
+  content   String   @db.Text
+  changedBy String
+  reason    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([agentId, version])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  agentId   String
+  agent     Agent     @relation(fields: [agentId], references: [id])
+  summary   String?   @db.Text
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  role           MessageRole
+  content        String       @db.Text
+  tokenCount     Int?
+  createdAt      DateTime     @default(now())
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model AgentMessage {
+  id             String        @id @default(cuid())
+  fromAgentId    String
+  fromAgent      Agent         @relation("SentMessages", fields: [fromAgentId], references: [id])
+  toAgentId      String
+  toAgent        Agent         @relation("ReceivedMessages", fields: [toAgentId], references: [id])
+  task           String        @db.Text
+  responseFormat String?
+  response       String?       @db.Text
+  status         MessageStatus @default(PENDING)
+  tokenCost      Int?
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+}
+
+enum MessageStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model ScheduledTask {
+  id             String    @id @default(cuid())
+  agentId        String
+  agent          Agent     @relation(fields: [agentId], references: [id])
+  name           String
+  description    String?
+  cronPattern    String
+  taskDefinition String    @db.Text
+  enabled        Boolean   @default(true)
+  lastRun        DateTime?
+  nextRun        DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model UserTool {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  name          String
+  description   String
+  fullSchema    Json
+  requestConfig Json
+  credentialRef String?
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Credential {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  serviceName    String
+  encryptedValue String   @db.Text
+  iv             String
+  authTag        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, serviceName])
+}
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  agentId   String
+  agent     Agent        @relation(fields: [agentId], references: [id])
+  type      ActivityType
+  summary   String
+  details   Json?
+  tokenCost Int?
+  error     String?
+  createdAt DateTime     @default(now())
+}
+
+enum ActivityType {
+  CHAT
+  TOOL_USE
+  AGENT_TO_AGENT
+  TASK_EXECUTED
+  PROMPT_UPDATED
+  TOOL_CREATED
+  DB_OPERATION
+  WEB_SEARCH
+  ERROR
+}
