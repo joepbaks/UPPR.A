@@ -3,6 +3,7 @@ import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from './middleware/auth.js';
 import { createAgentRoutes } from './routes/agents.js';
+import { createToolRoutes } from './routes/tools.js';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -17,6 +18,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api', authMiddleware(prisma));
 app.use('/api/agents', createAgentRoutes(prisma));
+app.use('/api/tools', createToolRoutes(prisma));
 
 app.listen(port, () => {
   console.log(`UPPR.A backend running on port ${port}`);
