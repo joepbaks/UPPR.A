@@ -48,6 +48,13 @@ function getClient(): OpenAI {
   return client;
 }
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function chat(
   tier: ModelTier,
   messages: ChatMessage[],
@@ -56,25 +63,47 @@ export async function chat(
   const model = options?.modelOverride ?? MODEL_TIERS[tier];
   const openai = getClient();
 
-  const response = await openai.chat.completions.create({
-    model,
-    messages,
-    max_tokens: options?.maxTokens ?? 1024,
-    temperature: options?.temperature ?? 0.7,
-  });
+  let lastError: Error | null = null;
 
-  const choice = response.choices[0];
-  if (!choice?.message?.content) {
-    throw new Error('No content in LLM response');
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await openai.chat.completions.create({
+        model,
+        messages,
+        max_tokens: options?.maxTokens ?? 1024,
+        temperature: options?.temperature ?? 0.7,
+      });
+
+      if (!response.choices || response.choices.length === 0) {
+        throw new Error(
+          `OpenRouter returned no choices. Model: ${model}, ID: ${response.id ?? 'unknown'}`,
+        );
+      }
+
+      const choice = response.choices[0]!;
+      if (!choice.message?.content) {
+        throw new Error(
+          `OpenRouter returned empty content. Finish reason: ${choice.finish_reason ?? 'unknown'}`,
+        );
+      }
+
+      return {
+        content: choice.message.content,
+        model: response.model ?? model,
+        usage: {
+          promptTokens: response.usage?.prompt_tokens ?? 0,
+          completionTokens: response.usage?.completion_tokens ?? 0,
+          totalTokens: response.usage?.total_tokens ?? 0,
+        },
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < MAX_RETRIES) {
+        console.warn(`LLM call failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}): ${lastError.message}. Retrying...`);
+        await sleep(RETRY_DELAY_MS * (attempt + 1));
+      }
+    }
   }
 
-  return {
-    content: choice.message.content,
-    model: response.model ?? model,
-    usage: {
-      promptTokens: response.usage?.prompt_tokens ?? 0,
-      completionTokens: response.usage?.completion_tokens ?? 0,
-      totalTokens: response.usage?.total_tokens ?? 0,
-    },
-  };
+  throw lastError ?? new Error('LLM call failed after retries');
 }

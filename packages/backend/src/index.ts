@@ -20,6 +20,12 @@ app.use('/api', authMiddleware(prisma));
 app.use('/api/agents', createAgentRoutes(prisma));
 app.use('/api/tools', createToolRoutes(prisma));
 
+// Global JSON error handler — prevents HTML error pages
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('API Error:', err.message);
+  res.status(500).json({ error: err.message });
+});
+
 app.listen(port, () => {
   console.log(`UPPR.A backend running on port ${port}`);
 });
